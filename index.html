@@ -104,7 +104,7 @@
       }
       .name.pending {
         animation: pulse 0.6s ease-in-out infinite;
-        border-color: var(--tone);
+        border-color: var(--layer, var(--tone));
       }
       .machine {
         width: 100%;
@@ -117,7 +117,7 @@
       }
       .grid {
         display: grid;
-        grid-template-columns: 74px repeat(16, 1fr);
+        grid-template-columns: 92px repeat(16, 1fr);
         gap: 2px;
         touch-action: none;
       }
@@ -125,12 +125,13 @@
         display: flex;
         align-items: center;
         gap: 2px;
-        padding: 0 2px 0 6px;
+        padding: 0 2px 0 5px;
         height: 30px;
         font-size: 13px;
         border-radius: 3px;
         background: var(--panel-2);
         border: 1px solid var(--edge);
+        border-left: 2px solid var(--layer, var(--edge));
         color: var(--ink);
         cursor: pointer;
         user-select: none;
@@ -151,44 +152,43 @@
         width: 5px;
         height: 5px;
         border-radius: 50%;
-        background: var(--led);
+        background: var(--layer, var(--led));
         font-style: normal;
         flex: none;
-      }
-      .name.tonal i {
-        background: var(--tone);
       }
       .name.off {
         color: var(--ink-dim);
         background: #1d1b1a;
+        border-left-color: #4a4644;
       }
       .name.off i {
         background: #4a4644;
       }
       .edit {
         font: inherit;
-        font-size: 15px;
+        font-size: 13px;
         line-height: 1;
         color: var(--ink-dim);
         background: #241f1d;
         border: 1px solid var(--edge);
         border-radius: 3px;
-        padding: 3px 4px 5px;
+        padding: 4px 3px 5px;
+        min-width: 18px;
         cursor: pointer;
         flex: none;
         -webkit-tap-highlight-color: transparent;
       }
       .edit.tweaked {
-        color: var(--led);
-        border-color: #5a3411;
+        color: var(--layer, var(--led));
+        border-color: var(--layer-soft, #5a3411);
       }
       .edit.moving {
-        color: var(--tone);
-        border-color: #1e5f6b;
+        color: var(--layer-hot, var(--tone));
+        border-color: var(--layer, #1e5f6b);
       }
       .edit.queued {
-        color: var(--tone);
-        border-color: var(--tone);
+        color: var(--layer-hot, var(--tone));
+        border-color: var(--layer, var(--tone));
       }
       .name.tall .edit {
         margin-top: -2px;
@@ -206,23 +206,15 @@
         background: #232120;
       }
       .cell.on {
-        background: var(--led-soft);
-        border-color: #7d4b17;
-      }
-      .cell.on.tonal {
-        background: var(--tone-soft);
-        border-color: #1e5f6b;
+        background: var(--layer-soft, var(--led-soft));
+        border-color: var(--layer, #7d4b17);
       }
       .cell.play {
         border-color: #6a625c;
       }
       .cell.on.play {
-        background: var(--led);
-        border-color: #ffb85c;
-      }
-      .cell.on.tonal.play {
-        background: var(--tone);
-        border-color: #9fe6f0;
+        background: var(--layer, var(--led));
+        border-color: var(--layer-hot, #ffb85c);
       }
       .sep {
         grid-column: 1/-1;
@@ -332,6 +324,7 @@
         max-width: 330px;
         background: linear-gradient(#2c2927, #211f1e);
         border: 1px solid var(--edge);
+        border-top: 2px solid var(--layer, var(--edge));
         border-radius: 8px;
         padding: 13px;
         box-shadow:
@@ -347,7 +340,7 @@
         font-size: 15px;
         font-weight: 700;
         letter-spacing: 0.14em;
-        color: var(--ink);
+        color: var(--layer-hot, var(--ink));
         align-self: flex-start;
       }
       canvas#dial {
@@ -478,12 +471,12 @@
     <p class="hint">
       The pad is two bars wide against a one-bar drum loop — play a phrase in
       the first half, answer it in the second. Height is pitch in A minor
-      pentatonic. Tap a layer name to mute it now, tap » to mute it at the next
-      bar line, hold » to shape it — dial for length and tone, knobs for drive
-      and delay, and a sweep shape that moves the tone on its own over 2, 4 or 8
-      bars. Chords cycles Am–F–C–G under the bass and stab; your drawn line fits
-      over all four without moving. The gate buttons arm a chopped last bar of
-      the phrase, then disarm themselves.
+      pentatonic. Tap a layer name to mute it now, tap » to mute at the end of
+      the 4-bar phrase (tap again to cancel), tap ◎ to shape it — dial for
+      length and tone, knobs for drive and delay, and a sweep shape that moves
+      the tone on its own over 2, 4 or 8 bars. Chords cycles Am–F–C–G under the
+      bass and stab; your drawn line fits over all four without moving. The gate
+      buttons arm a chopped last bar of the phrase, then disarm themselves.
     </p>
 
     <div class="scrim" id="scrim">
@@ -535,6 +528,25 @@
         { id: "stab", name: "stab", tonal: true },
         { id: "blip", name: "blip", tonal: true },
       ];
+      // per-layer hues: soft = resting hit, mid = active/LED, hot = playhead accent
+      const COLORS = {
+        kick: { soft: "#5a3411", mid: "#ff9421", hot: "#ffb85c" },
+        clap: { soft: "#5a221c", mid: "#e85d4c", hot: "#f09080" },
+        hat: { soft: "#3d3830", mid: "#c4b48a", hot: "#ddd0a8" },
+        open: { soft: "#2e3a22", mid: "#a8c47a", hot: "#c5e09a" },
+        perc: { soft: "#4a2840", mid: "#d47bb0", hot: "#e9a8cc" },
+        bass: { soft: "#123e46", mid: "#5fc8d8", hot: "#9fe6f0" },
+        stab: { soft: "#1e2450", mid: "#7b8cff", hot: "#a8b4ff" },
+        blip: { soft: "#1a3d30", mid: "#50d2a0", hot: "#8aecc0" },
+        line: { soft: "#1b5b68", mid: "#5fc8d8", hot: "#9fe6f0" },
+      };
+      function tint(el, id) {
+        const c = COLORS[id];
+        if (!c || !el) return;
+        el.style.setProperty("--layer", c.mid);
+        el.style.setProperty("--layer-soft", c.soft);
+        el.style.setProperty("--layer-hot", c.hot);
+      }
       const seed = {
         kick: [0, 4, 8, 12],
         clap: [4, 12],
@@ -577,7 +589,8 @@
             bars: 4,
           }),
       );
-      const gears = {};
+      const gears = {}; // shape (◎)
+      const queues = {}; // phrase-mute (»)
       const SHAPES = [
         ["off", "off"],
         ["sine", "∿"],
@@ -650,11 +663,11 @@
         muted[id] = val;
         chips[id].classList.toggle("off", val);
         chips[id].classList.remove("pending");
-        gears[id].classList.remove("queued");
+        queues[id].classList.remove("queued");
         delete pending[id];
       }
       function queueMute(id) {
-        // at the next bar line
+        // at the end of the 4-bar phrase
         if (!timer) {
           setMute(id, !muted[id]);
           return;
@@ -663,18 +676,23 @@
           // second tap cancels the arm
           delete pending[id];
           chips[id].classList.remove("pending");
-          gears[id].classList.remove("queued");
+          queues[id].classList.remove("queued");
           return;
         }
         pending[id] = !muted[id];
         chips[id].classList.add("pending");
-        gears[id].classList.add("queued");
+        queues[id].classList.add("queued");
       }
       function syncChips() {
         Object.keys(chips).forEach((id) => {
           chips[id].classList.toggle("off", !!muted[id]);
-          chips[id].classList.remove("pending");
-          gears[id].classList.remove("queued");
+          if (id in pending) {
+            chips[id].classList.add("pending");
+            queues[id].classList.add("queued");
+          } else {
+            chips[id].classList.remove("pending");
+            queues[id].classList.remove("queued");
+          }
         });
       }
 
@@ -682,46 +700,38 @@
         const el = document.createElement("div");
         el.className = "name" + (tonal ? " tonal" : "") + (tall ? " tall" : "");
         el.tabIndex = 0;
+        tint(el, id);
         const span = document.createElement("span");
         span.textContent = label;
-        const gear = document.createElement("button");
-        gear.className = "edit";
-        gear.textContent = "»";
-        gear.setAttribute(
+        const queue = document.createElement("button");
+        queue.className = "edit";
+        queue.textContent = "»";
+        queue.setAttribute(
           "aria-label",
-          label + ": mute at next bar, hold to shape",
+          label + ": mute at end of phrase",
         );
-        let held = null,
-          fired = false;
-        gear.addEventListener("pointerdown", (e) => {
+        queue.addEventListener("click", (e) => {
           e.stopPropagation();
           e.preventDefault();
-          fired = false;
-          held = setTimeout(() => {
-            fired = true;
-            openSheet(id, label);
-          }, 450);
+          queueMute(id);
         });
-        const release = (e) => {
-          e.stopPropagation();
-          clearTimeout(held);
-          held = null;
-          if (!fired) queueMute(id);
-        };
-        gear.addEventListener("pointerup", release);
-        gear.addEventListener("pointercancel", (e) => {
-          e.stopPropagation();
-          clearTimeout(held);
-        });
-        gear.addEventListener("contextmenu", (e) => e.preventDefault());
+        const gear = document.createElement("button");
+        gear.className = "edit";
+        gear.textContent = "◎";
+        gear.setAttribute("aria-label", label + ": shape");
         gear.addEventListener("click", (e) => {
           e.stopPropagation();
           e.preventDefault();
+          openSheet(id, label);
         });
+        queues[id] = queue;
         gears[id] = gear;
-        el.append(span, gear, document.createElement("i"));
+        el.append(span, queue, gear, document.createElement("i"));
         chips[id] = el;
-        el.addEventListener("click", () => setMute(id, !muted[id]));
+        el.addEventListener("click", (e) => {
+          if (e.target.closest("button")) return;
+          setMute(id, !muted[id]);
+        });
         el.addEventListener("keydown", (e) => {
           if (e.key === " " || e.key === "Enter") {
             e.preventDefault();
@@ -741,6 +751,7 @@
           c.setAttribute("aria-label", l.name + " step " + (s + 1));
           c.dataset.layer = l.id;
           c.dataset.step = s;
+          tint(c, l.id);
           c.classList.toggle("on", pat[l.id][s]);
           grid.appendChild(c);
           cells[l.id].push(c);
@@ -804,10 +815,10 @@
         buildCache();
         drawPad();
       }
-      function noteBox(s, r) {
+      function noteBox(s, r, play) {
         const cw = W / PAD,
           rh = H / ROWS,
-          held = line[(s + 1) % PAD] === r;
+          held = !play && line[(s + 1) % PAD] === r;
         return {
           x: s * cw + 1,
           y: r * rh + 1.5,
@@ -817,8 +828,11 @@
       }
       function buildCache() {
         const cw = W / PAD,
-          rh = H / ROWS;
+          rh = H / ROWS,
+          col = COLORS.line;
         cctx.clearRect(0, 0, W, H);
+        cctx.fillStyle = "#1b1918";
+        cctx.fillRect(0, 0, W, H);
         cctx.fillStyle = "#1e1c1b";
         cctx.fillRect(W / 2, 0, W / 2, H);
         for (let s = 0; s < PAD; s++) {
@@ -840,27 +854,29 @@
         cctx.moveTo(W / 2 + 0.5, 0);
         cctx.lineTo(W / 2 + 0.5, H);
         cctx.stroke();
-        cctx.fillStyle = "#1b5b68";
+        cctx.fillStyle = col.soft;
         cctx.strokeStyle = "#2a7d8c";
         for (let s = 0; s < PAD; s++) {
           const r = line[s];
           if (r === null) continue;
-          const b = noteBox(s, r);
+          const b = noteBox(s, r, false);
           cctx.fillRect(b.x, b.y, b.w, b.h);
           cctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
         }
       }
       function drawPad() {
+        ctx.clearRect(0, 0, W, H);
         ctx.drawImage(cache, 0, 0, W, H);
         if (playStep < 0) return;
-        const cw = W / PAD;
+        const cw = W / PAD,
+          col = COLORS.line;
         ctx.fillStyle = "rgba(233,226,216,.08)";
         ctx.fillRect(playStep * cw, 0, cw, H);
         const r = line[playStep];
         if (r !== null) {
-          const b = noteBox(playStep, r);
-          ctx.fillStyle = "#5fc8d8";
-          ctx.strokeStyle = "#9fe6f0";
+          const b = noteBox(playStep, r, true);
+          ctx.fillStyle = col.mid;
+          ctx.strokeStyle = col.hot;
           ctx.fillRect(b.x, b.y, b.w, b.h);
           ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
         }
@@ -1301,9 +1317,12 @@
           if (chordBars)
             CUR = PROG[Math.floor(a / (chordBars * STEPS)) % PROG.length];
           if (ds === 0) {
-            for (const id in pending) {
-              muted[id] = pending[id];
-              delete pending[id];
+            const atPhraseStart = Math.floor(a / STEPS) % PHRASE === 0;
+            if (atPhraseStart) {
+              for (const id in pending) {
+                muted[id] = pending[id];
+                delete pending[id];
+              }
             }
             const lastBarOfPhrase =
               Math.floor(a / STEPS) % PHRASE === PHRASE - 1;
@@ -1470,7 +1489,8 @@
       };
       function drawDial() {
         const p = P[editing],
-          R0 = RANGE[editing];
+          R0 = RANGE[editing],
+          col = COLORS[editing] || COLORS.bass;
         const a = toAngle(editing, p.tone);
         const r = 0.18 + ((p.len - R0.len[0]) / (R0.len[1] - R0.len[0])) * 0.82;
         const c = DW / 2,
@@ -1492,14 +1512,14 @@
         dctx.beginPath();
         dctx.arc(c, c, R + 7, -Math.PI / 2 - SWEEP, -Math.PI / 2 + SWEEP);
         dctx.stroke();
-        dctx.strokeStyle = "#5fc8d8";
+        dctx.strokeStyle = col.mid;
         dctx.beginPath();
         dctx.arc(c, c, R + 7, -Math.PI / 2 - SWEEP, -Math.PI / 2 + a);
         dctx.stroke();
         if (p.shape !== "off") {
           // live sweep position
           const am = toAngle(editing, effTone(editing, viewStep));
-          dctx.strokeStyle = "#2f7e8c";
+          dctx.strokeStyle = col.soft;
           dctx.lineWidth = 2;
           dctx.beginPath();
           dctx.moveTo(c + Math.sin(am) * R * 0.25, c - Math.cos(am) * R * 0.25);
@@ -1514,7 +1534,7 @@
         dctx.moveTo(c, c);
         dctx.lineTo(hx, hy);
         dctx.stroke();
-        dctx.fillStyle = "#ff9421";
+        dctx.fillStyle = col.hot;
         dctx.beginPath();
         dctx.arc(hx, hy, 9, 0, 7);
         dctx.fill();
@@ -1570,13 +1590,11 @@
           el: document.getElementById("kDrive"),
           key: "drive",
           out: rDrive,
-          hue: "#ff9421",
         },
         {
           el: document.getElementById("kSend"),
           key: "send",
           out: rSend,
-          hue: "#5fc8d8",
         },
       ];
       knobs.forEach((k) => {
@@ -1613,7 +1631,9 @@
         const v = P[editing][k.key],
           c = k.w / 2,
           R = k.w / 2 - 9,
-          g = k.ctx;
+          g = k.ctx,
+          col = COLORS[editing] || COLORS.bass,
+          hue = k.key === "drive" ? col.hot : col.mid;
         const a = -SWEEP + v * 2 * SWEEP;
         g.clearRect(0, 0, k.w, k.w);
         g.fillStyle = "#1b1918";
@@ -1625,13 +1645,13 @@
         g.beginPath();
         g.arc(c, c, R + 4, -Math.PI / 2 - SWEEP, -Math.PI / 2 + SWEEP);
         g.stroke();
-        g.strokeStyle = k.hue;
+        g.strokeStyle = hue;
         if (v > 0.001) {
           g.beginPath();
           g.arc(c, c, R + 4, -Math.PI / 2 - SWEEP, -Math.PI / 2 + a);
           g.stroke();
         }
-        g.strokeStyle = v > 0.001 ? k.hue : "#4a4644";
+        g.strokeStyle = v > 0.001 ? hue : "#4a4644";
         g.lineWidth = 3;
         g.lineCap = "round";
         g.beginPath();
@@ -1671,6 +1691,7 @@
       function openSheet(id, label) {
         editing = id;
         document.getElementById("sheetTitle").textContent = label;
+        tint(document.querySelector(".sheet"), id);
         scrim.classList.add("open");
         sizeDial();
         drawAll();
