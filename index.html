@@ -120,52 +120,8 @@
         opacity: 0.18;
       }
 
-      /* ---------- header ---------- */
-
-      .head {
-        position: relative;
-
-        display: flex;
-        width: 100%;
-        max-width: 640px;
-
-        align-items: center;
-        gap: 7px;
-
-        padding: 2px 1px;
-      }
-
-      h1 {
-        margin: 0;
-
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-
-        color: #7785a6;
-
-        text-shadow:
-          0 0 14px rgba(83, 220, 255, 0.12),
-          0 1px 1px #000;
-      }
-
-      h1 b {
-        color: #ffad3d;
-
-        text-shadow:
-          0 0 7px rgba(255, 155, 40, 0.7),
-          0 0 22px rgba(255, 117, 20, 0.32);
-      }
-
-      .gates {
-        display: flex;
-        gap: 5px;
-        margin-left: auto;
-      }
-
       /* ---------- generic glass buttons ---------- */
 
-      .gbtn,
       .ltool,
       .edit,
       .chip,
@@ -201,7 +157,6 @@
         cursor: pointer;
       }
 
-      .gbtn:hover,
       .ltool:hover,
       .edit:hover,
       .chip:hover,
@@ -214,42 +169,11 @@
           0 0 18px rgba(50, 205, 255, 0.08);
       }
 
-      .gbtn:active,
       .ltool:active,
       .edit:active,
       .chip:active,
       button.ctl:active {
         transform: translateY(1px);
-      }
-
-      /* ---------- gate buttons ---------- */
-
-      .gbtn {
-        font-size: 12px;
-        letter-spacing: 0.06em;
-
-        border-radius: 6px;
-        padding: 6px 9px;
-      }
-
-      .gbtn.armed {
-        color: #160e04;
-
-        background: linear-gradient(
-          135deg,
-          #ffc263 0%,
-          #ff9d2e 45%,
-          #ff7c19 100%
-        );
-
-        border-color: #ffd69a;
-
-        box-shadow:
-          inset 0 1px 0 rgba(255, 255, 255, 0.4),
-          0 0 8px rgba(255, 152, 38, 0.85),
-          0 0 28px rgba(255, 112, 18, 0.32);
-
-        animation: softPulse 1s ease-in-out infinite;
       }
 
       @keyframes softPulse {
@@ -686,6 +610,13 @@
         padding: 10px 16px;
       }
 
+      button.ctl.big.gear {
+        flex: none;
+        width: 62px;
+        padding: 16px 0;
+        font-size: 18px;
+      }
+
       button.ctl.big {
         position: relative;
 
@@ -738,19 +669,31 @@
           0 8px 28px rgba(0, 0, 0, 0.32);
       }
 
-      /* ---------- hint ---------- */
+      /* ---------- hints ---------- */
 
-      .hint {
+      .hints {
+        width: 100%;
         max-width: 640px;
 
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .hints p {
         margin: 0;
 
         font-size: 13px;
-        line-height: 1.55;
+        line-height: 1.5;
 
         color: #687694;
 
         text-shadow: 0 1px 2px #000;
+      }
+
+      .hints b {
+        color: #9caac7;
+        font-weight: 700;
       }
 
       /* ---------- modal backdrop ---------- */
@@ -1050,7 +993,6 @@
       /* ---------- focus ---------- */
 
       button.ctl:focus-visible,
-      .gbtn:focus-visible,
       .name:focus-visible,
       .cell:focus-visible,
       .edit:focus-visible,
@@ -1101,11 +1043,7 @@
           height: 132px;
         }
 
-        .gbtn {
-          padding: 6px 7px;
-        }
-
-        .hint {
+        .hints p {
           font-size: 12px;
         }
 
@@ -1128,16 +1066,6 @@
     </style>
   </head>
   <body>
-    <div class="head">
-      <h1>Grid <b>909</b></h1>
-      <div class="gates">
-        <button class="gbtn" id="g16">1/16</button>
-        <button class="gbtn" id="gtr">trip</button>
-        <button class="gbtn" id="gbu">build</button>
-        <button class="gbtn" id="setup" aria-label="settings">⚙</button>
-      </div>
-    </div>
-
     <div class="machine">
       <canvas id="phase"></canvas>
       <div class="grid" id="grid"></div>
@@ -1145,18 +1073,29 @@
 
     <div class="bar">
       <button class="ctl big" id="run">Play</button>
+      <button class="ctl big gear" id="setup" aria-label="settings">⚙</button>
     </div>
 
-    <p class="hint">
-      The pad is two bars wide against a one-bar drum loop — play a phrase in
-      the first half, answer it in the second. Height is pitch in A minor
-      pentatonic. Tap a layer name to mute it now, » to mute it at the start of
-      the next phrase, ◎ to shape it. Slide the chord slots sideways or tap
-      their arrows; every chord in the set is diatonic to A minor, so your line
-      fits all of them. A gate arms and fires on the last bar of the 16-bar
-      cycle — the amber block on the strip shows where it will land. ⚙ holds
-      tempo, swing, delay and saving.
-    </p>
+    <div class="hints">
+      <p>
+        <b>Pad</b> — two bars against a one-bar drum loop, so you can play a
+        phrase in the first half and answer it in the second. Height is pitch in
+        A minor pentatonic, so any line you draw fits.
+      </p>
+      <p>
+        <b>Layer name</b> — tap to mute now, <b>»</b> to mute at the start of
+        the next phrase.
+      </p>
+      <p>
+        <b>◎</b> — shape that layer: length and tone on the dial, stereo width
+        and delay on the knobs, and a sweep that moves the tone on its own.
+      </p>
+      <p>
+        <b>Chords</b> — slide a slot sideways or tap its arrows. Every chord in
+        the set is diatonic to A minor, so the line fits all four.
+      </p>
+      <p><b>⚙</b> — tempo, volume, swing, delay. Everything saves itself.</p>
+    </div>
 
     <div class="scrim" id="mscrim">
       <div
@@ -1181,18 +1120,12 @@
           >
         </div>
         <div class="chiprow" id="swingrow"><span>swing</span></div>
-        <div class="chiprow" id="phraserow"><span>phrase</span></div>
         <div class="chiprow" id="divrow"><span>delay</span></div>
         <div class="srow">
           <label for="fb">repeats</label
           ><input id="fb" type="range" min="0" max="80" value="36" /><b id="fbv"
             >36</b
           >
-        </div>
-        <div class="chiprow" id="humanrow"><span>feel</span></div>
-        <div class="sheetbar">
-          <button class="ctl" id="save">Save</button>
-          <button class="ctl" id="load">Load</button>
         </div>
         <div class="sheetbar">
           <button class="ctl" id="cleardrums">Clear drums</button>
@@ -1365,11 +1298,10 @@
       const CHORD_BARS = 4;
       const slots = [0, 4, 1, 5]; // Am F C G
       let CUR = CHORDS[0],
-        swing = 0;
-      let PHRASE = 4; // bars per phrase, for queued mutes
-      let delayDiv = 0.75, // dotted eighth
-        humanize = 0;
-      let gateArmed = null; // '16' | 'trip' | 'build'
+        swing = 22; // medium by default
+      let delayDiv = 0.75; // dotted eighth
+      const PHRASE = 4; // bars per phrase, for queued mutes
+      const HUMANIZE = 1; // a few ms of timing jitter, always on
 
       /* ---------- sweep ---------- */
       function sweepAmount(p, absStep) {
@@ -1544,7 +1476,7 @@
       eraseBtn.textContent = "Erase";
       const clearLineBtn = document.createElement("button");
       clearLineBtn.className = "ltool";
-      clearLineBtn.textContent = "Clear line";
+      clearLineBtn.textContent = "Clear";
       tools.append(eraseBtn, clearLineBtn);
       lineChip.appendChild(tools);
       grid.appendChild(lineChip);
@@ -1577,6 +1509,7 @@
       function applyPaint(c) {
         pat[c.dataset.layer][c.dataset.step] = paint;
         c.classList.toggle("on", paint);
+        queueSave();
       }
 
       /* ---------- melody pad ---------- */
@@ -1693,6 +1626,7 @@
         lastCol = col;
         buildCache();
         drawPad();
+        queueSave();
       }
       drag(cv, {
         start: (e) => {
@@ -1728,12 +1662,14 @@
         line.fill(null);
         buildCache();
         drawPad();
+        queueSave();
       };
       document.getElementById("cleardrums").onclick = () => {
         LAYERS.forEach((l) => {
           pat[l.id] = Array(STEPS).fill(false);
           cells[l.id].forEach((c) => c.classList.remove("on"));
         });
+        queueSave();
       };
 
       const bpmEl = document.getElementById("bpm"),
@@ -1743,6 +1679,7 @@
         bpm = +bpmEl.value;
         bpmv.textContent = bpm;
         if (ac) syncDelay();
+        queueSave();
       };
 
       /* ---------- master settings ---------- */
@@ -1756,6 +1693,7 @@
           b.onclick = () => {
             set(val);
             paint();
+            queueSave();
           };
           el.appendChild(b);
           return { b, val };
@@ -1775,15 +1713,6 @@
         () => swing,
         (v) => (swing = v),
       );
-      const paintPhrase = chipRow(
-        "phraserow",
-        [
-          ["4 bars", 4],
-          ["8 bars", 8],
-        ],
-        () => PHRASE,
-        (v) => (PHRASE = v),
-      );
       const paintDiv = chipRow(
         "divrow",
         [
@@ -1797,28 +1726,20 @@
           if (ac) syncDelay();
         },
       );
-      const paintHuman = chipRow(
-        "humanrow",
-        [
-          ["tight", 0],
-          ["loose", 0.5],
-          ["human", 1],
-        ],
-        () => humanize,
-        (v) => (humanize = v),
-      );
 
       const volEl = document.getElementById("vol"),
         volv = document.getElementById("volv");
       volEl.oninput = () => {
         volv.textContent = volEl.value;
         if (master) master.gain.value = +volEl.value / 100;
+        queueSave();
       };
       const fbEl = document.getElementById("fb"),
         fbv = document.getElementById("fbv");
       fbEl.oninput = () => {
         fbv.textContent = fbEl.value;
         if (fbGain) fbGain.gain.value = +fbEl.value / 100;
+        queueSave();
       };
 
       document.getElementById("setup").onclick = () =>
@@ -1829,15 +1750,12 @@
         if (e.target === mscrim) mscrim.classList.remove("open");
       });
 
-      /* ---------- save / load ---------- */
+      /* ---------- persistence ---------- */
       const KEY = "grid909";
-      function flash(id, text) {
-        const b = document.getElementById(id),
-          was = b.textContent;
-        b.textContent = text;
-        setTimeout(() => (b.textContent = was), 900);
-      }
-      document.getElementById("save").onclick = () => {
+      let saveTimer = null;
+      function saveNow() {
+        clearTimeout(saveTimer);
+        saveTimer = null;
         try {
           localStorage.setItem(
             KEY,
@@ -1848,24 +1766,29 @@
               slots,
               bpm,
               swing,
-              PHRASE,
               delayDiv,
-              humanize,
               vol: +volEl.value,
               fb: +fbEl.value,
             }),
           );
-          flash("save", "Saved");
-        } catch (err) {
-          flash("save", "Failed");
-        }
-      };
-      document.getElementById("load").onclick = () => {
+        } catch (err) {}
+      }
+      // a drag fires hundreds of changes; one write once the hand stops is
+      // enough, so a burst coalesces into a single save
+      function queueSave() {
+        if (saveTimer) return;
+        saveTimer = setTimeout(saveNow, 1200);
+      }
+      addEventListener("pagehide", saveNow);
+      addEventListener("visibilitychange", () => {
+        if (document.hidden) saveNow();
+      });
+      function loadState() {
         let d = null;
         try {
           d = JSON.parse(localStorage.getItem(KEY) || "null");
         } catch (err) {}
-        if (!d) return flash("load", "Nothing");
+        if (!d) return;
         LAYERS.forEach((l) => {
           if (d.pat && d.pat[l.id]) pat[l.id] = d.pat[l.id].slice();
           cells[l.id].forEach((c, i) =>
@@ -1881,10 +1804,8 @@
           );
         if (d.slots) d.slots.forEach((v, i) => (slots[i] = v));
         bpm = d.bpm || bpm;
-        swing = d.swing || 0;
-        PHRASE = d.PHRASE || 4;
-        delayDiv = d.delayDiv || 0.75;
-        humanize = d.humanize || 0;
+        if (d.swing !== undefined) swing = d.swing;
+        delayDiv = d.delayDiv || delayDiv;
         bpmEl.value = bpm;
         bpmv.textContent = bpm;
         volEl.value = d.vol === undefined ? 80 : d.vol;
@@ -1892,32 +1813,9 @@
         fbEl.value = d.fb === undefined ? 36 : d.fb;
         fbEl.oninput();
         paintSwing();
-        paintPhrase();
         paintDiv();
-        paintHuman();
-        Object.keys(BUS).forEach((id) => applyBus(id));
-        if (ac) syncDelay();
         buildCache();
-        drawPad();
-        drawPhase();
-        flash("load", "Loaded");
-      };
-
-      const gateBtns = [
-        { el: document.getElementById("g16"), kind: "16" },
-        { el: document.getElementById("gtr"), kind: "trip" },
-        { el: document.getElementById("gbu"), kind: "build" },
-      ];
-      gateBtns.forEach(
-        (b) =>
-          (b.el.onclick = () => {
-            gateArmed = gateArmed === b.kind ? null : b.kind;
-            gateBtns.forEach((x) =>
-              x.el.classList.toggle("armed", gateArmed === x.kind),
-            );
-            drawPhase();
-          }),
-      );
+      }
 
       /* ---------- phase strip ---------- */
       const ph = document.getElementById("phase");
@@ -1970,11 +1868,6 @@
           pctx.fillRect(0, 0, pos * PW, PH);
           pctx.fillStyle = COLORS.line.mid;
           pctx.fillRect(Math.min(PW - 2, pos * PW), 0, 2, PH);
-          if (gateArmed) {
-            const bars = segs * CHORD_BARS;
-            pctx.fillStyle = "rgba(255,157,46,.35)";
-            pctx.fillRect(((bars - 1) / bars) * PW, 0, PW / bars, PH);
-          }
         }
       }
       /* slide a slot sideways to pick another chord; tap an arrow to step one;
@@ -1995,6 +1888,7 @@
         const n = CHORDS.length;
         slots[i] = ((ci % n) + n) % n;
         drawPhase();
+        queueSave();
       };
       drag(ph, {
         threshold: 8, // below this a gesture counts as a tap
@@ -2029,7 +1923,6 @@
       /* ---------- audio ---------- */
       let ac,
         master,
-        gate,
         duck,
         noise,
         delayNode,
@@ -2046,12 +1939,9 @@
       function initAudio() {
         const Ctx = window.AudioContext || window.webkitAudioContext;
         ac = new Ctx({ latencyHint: "interactive" }); // smallest buffer the device will give
-        gate = ac.createGain();
-        gate.gain.value = 1;
-        gate.connect(ac.destination);
         master = ac.createGain();
         master.gain.value = +volEl.value / 100;
-        master.connect(gate);
+        master.connect(ac.destination);
         duck = ac.createGain();
         duck.gain.value = 1;
         duck.connect(master);
@@ -2111,35 +2001,6 @@
           b.panR.pan.value = w;
         }
         b.send.gain.value = p.send * 0.85;
-      }
-      // one bar of chopped master gain, scheduled in advance — no processing, just automation
-      function scheduleGate(kind, t0, spb) {
-        const g = gate.gain,
-          bar = 16 * spb;
-        g.cancelScheduledValues(t0);
-        const slices = [];
-        if (kind === "16")
-          for (let i = 0; i < 16; i++) slices.push(t0 + (i * bar) / 16);
-        if (kind === "trip")
-          for (let i = 0; i < 12; i++) slices.push(t0 + (i * bar) / 12);
-        if (kind === "build")
-          for (let q = 0; q < 4; q++) {
-            const n = 2 << q; // 2, 4, 8, 16 per quarter
-            for (let i = 0; i < n; i++)
-              slices.push(t0 + (q * bar) / 4 + (i * bar) / 4 / n);
-          }
-        // 2.5 ms edges: an instant gain jump is a click, and sixteen clicks a
-        // bar is what "loud but no effect" sounds like
-        const R = 0.0025;
-        g.setValueAtTime(1, t0);
-        slices.forEach((ts, i) => {
-          const next = slices[i + 1] !== undefined ? slices[i + 1] : t0 + bar;
-          const off = ts + (next - ts) * 0.55;
-          g.linearRampToValueAtTime(1, Math.max(ts, t0 + R));
-          g.setValueAtTime(1, off);
-          g.linearRampToValueAtTime(0, off + R);
-        });
-        g.linearRampToValueAtTime(1, t0 + bar);
       }
       function syncDelay() {
         if (!delayNode) return;
@@ -2296,7 +2157,7 @@
           const t =
             nextTime +
             (ds % 2 ? (swing / 100) * 0.6 * spb : 0) +
-            (humanize ? (Math.random() - 0.5) * humanize * 0.014 : 0);
+            (Math.random() - 0.5) * HUMANIZE * 0.014;
           SIDE = ds % 2;
           CUR =
             CHORDS[slots[Math.floor(a / (CHORD_BARS * STEPS)) % slots.length]];
@@ -2307,13 +2168,6 @@
                 muted[id] = pending[id];
                 delete pending[id];
               }
-            }
-            const cycleBars = slots.length * CHORD_BARS;
-            const lastBarOfCycle =
-              Math.floor(a / STEPS) % cycleBars === cycleBars - 1;
-            if (gateArmed && lastBarOfCycle) {
-              scheduleGate(gateArmed, nextTime, spb);
-              gateArmed = null;
             }
           }
           LAYERS.forEach((l) => {
@@ -2351,12 +2205,7 @@
         viewStep = a;
         drawPad();
         drawPhase();
-        if (ds === 0) {
-          syncChips();
-          gateBtns.forEach((b) =>
-            b.el.classList.toggle("armed", gateArmed === b.kind),
-          );
-        }
+        if (ds === 0) syncChips();
         if (
           editing &&
           P[editing].shape !== "off" &&
@@ -2378,12 +2227,6 @@
         drawPad();
         for (const id in pending) delete pending[id];
         syncChips();
-        gateArmed = null;
-        gateBtns.forEach((b) => b.el.classList.remove("armed"));
-        if (gate) {
-          gate.gain.cancelScheduledValues(ac.currentTime);
-          gate.gain.setValueAtTime(1, ac.currentTime);
-        }
         drawPhase();
       }
       run.onclick = async () => {
@@ -2641,6 +2484,7 @@
           );
           gears[editing].classList.toggle("moving", p.shape !== "off");
         }
+        queueSave();
       }
       function audition() {
         if (!ac) initAudio();
@@ -2687,6 +2531,7 @@
         if (e.target === scrim) closeSheet();
       });
 
+      loadState();
       sizePad();
       sizeDial();
       sizePhase();
