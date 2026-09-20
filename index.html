@@ -1128,7 +1128,7 @@
           >
         </div>
         <div class="sheetbar">
-          <button class="ctl" id="cleardrums">Clear drums</button>
+          <button class="ctl" id="blank">Blank project</button>
           <button class="ctl" id="mclose">Done</button>
         </div>
       </div>
@@ -1283,7 +1283,21 @@
         523.25,
       ];
       const ROWS = SCALE.length;
-      const line = Array(PAD).fill(null);
+      // row 0 is the top of the pad, so higher row number = lower pitch
+      const lineSeed = {
+        0: 7,
+        1: 7,
+        4: 5,
+        5: 5,
+        8: 6,
+        10: 8,
+        12: 4,
+        13: 4,
+        14: 4,
+      };
+      const line = Array.from({ length: PAD }, (_, i) =>
+        lineSeed[i] === undefined ? null : lineSeed[i],
+      );
 
       // every chord here is diatonic to A minor, so A minor pentatonic stays
       // consonant over all of them — that guarantee is why the set is closed
@@ -1664,12 +1678,29 @@
         drawPad();
         queueSave();
       };
-      document.getElementById("cleardrums").onclick = () => {
+      document.getElementById("blank").onclick = () => {
         LAYERS.forEach((l) => {
           pat[l.id] = Array(STEPS).fill(false);
           cells[l.id].forEach((c) => c.classList.remove("on"));
         });
-        queueSave();
+        line.fill(null);
+        // per-layer shaping is part of the project, not a global preference —
+        // a fresh hat should not inherit the last one's delay
+        Object.keys(P).forEach((id) => {
+          P[id] = { len: 1, tone: 1, width: 0, send: 0, shape: "off", bars: 4 };
+          if (BUS[id]) applyBus(id);
+          gears[id].classList.remove("tweaked", "moving");
+          setMute(id, false);
+        });
+        [0, 4, 1, 5].forEach((v, i) => (slots[i] = v));
+        clearTimeout(saveTimer);
+        saveTimer = null;
+        try {
+          localStorage.removeItem(KEY);
+        } catch (err) {}
+        buildCache();
+        drawPad();
+        drawPhase();
       };
 
       const bpmEl = document.getElementById("bpm"),
@@ -1782,6 +1813,9 @@
       addEventListener("pagehide", saveNow);
       addEventListener("visibilitychange", () => {
         if (document.hidden) saveNow();
+        // background tabs get their timers clamped to about 1s, so the
+        // scheduler has to look further ahead or the audio gaps
+        LOOK = document.hidden ? 2 : 0.12;
       });
       function loadState() {
         let d = null;
@@ -2146,10 +2180,11 @@
         },
       };
 
+      let LOOK = 0.12; // seconds of scheduling lookahead
       function schedule() {
         const spb = 60 / bpm / 4,
           myGen = gen;
-        while (nextTime < ac.currentTime + 0.12) {
+        while (nextTime < ac.currentTime + LOOK) {
           const s = step,
             a = absStep,
             ds = s % STEPS;
@@ -2183,12 +2218,13 @@
               line[(s + 1) % PAD] === line[s],
             );
           }
-          setTimeout(
-            () => {
-              if (myGen === gen) light(s, a);
-            },
-            Math.max(0, (t - ac.currentTime) * 1000),
-          );
+          if (!document.hidden)
+            setTimeout(
+              () => {
+                if (myGen === gen) light(s, a);
+              },
+              Math.max(0, (t - ac.currentTime) * 1000),
+            );
           step = (s + 1) % PAD;
           absStep = a + 1;
           nextTime += spb;
@@ -2249,12 +2285,6 @@
         if (e.key === "Escape") {
           if (scrim.classList.contains("open")) closeSheet();
           mscrim.classList.remove("open");
-        }
-      });
-      addEventListener("visibilitychange", () => {
-        if (document.hidden && timer) {
-          stopAll();
-          if (ac) ac.suspend();
         }
       });
 
