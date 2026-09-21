@@ -331,33 +331,12 @@
         flex: 1 0 auto;
       }
 
-      .name i {
-        width: 5px;
-        height: 5px;
-
-        border-radius: 50%;
-
-        background: var(--layer, var(--led));
-
-        box-shadow:
-          0 0 5px var(--layer, var(--led)),
-          0 0 11px var(--layer, var(--led));
-
-        font-style: normal;
-        flex: none;
-      }
-
       .name.off {
         color: #56617a;
 
         background: rgba(4, 7, 16, 0.74);
 
         border-left-color: #30384d;
-      }
-
-      .name.off i {
-        background: #30384d;
-        box-shadow: none;
       }
 
       /* ---------- layer controls ---------- */
@@ -815,6 +794,20 @@
           color-mix(in srgb, var(--layer-hot, #55e7ff) 45%, transparent);
       }
 
+      .sheet .rule {
+        align-self: stretch;
+
+        height: 1px;
+        margin: 3px 0;
+
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(103, 132, 200, 0.3),
+          transparent
+        );
+      }
+
       /* ---------- dial ---------- */
 
       canvas#dial {
@@ -900,6 +893,10 @@
         justify-content: center;
       }
 
+      .chiprow.wrap {
+        flex-wrap: wrap;
+      }
+
       .chiprow span {
         font-size: 12px;
 
@@ -931,6 +928,25 @@
           0 0 7px rgba(77, 224, 255, 0.65),
           0 0 18px rgba(77, 224, 255, 0.2),
           inset 0 1px 0 rgba(255, 255, 255, 0.45);
+      }
+
+      /* waiting for the next phrase — same pulse as a queued mute */
+      .chip.queued {
+        color: #dffaff;
+        border-color: var(--tone);
+
+        animation: softPulse 0.7s ease-in-out infinite;
+      }
+
+      .chip.empty {
+        opacity: 0.45;
+      }
+
+      /* save armed: the next slot tapped gets overwritten */
+      .chip.armed {
+        opacity: 1;
+        color: #ffc2a8;
+        border-color: #ff8b5e;
       }
 
       /* ---------- sliders ---------- */
@@ -1094,7 +1110,15 @@
         <b>Chords</b> — slide a slot sideways or tap its arrows. Every chord in
         the set is diatonic to A minor, so the line fits all four.
       </p>
-      <p><b>⚙</b> — tempo, volume, swing, delay. Everything saves itself.</p>
+      <p>
+        <b>⚙</b> — tempo, volume, swing, delay, and tracks. Everything saves
+        itself.
+      </p>
+      <p>
+        <b>Tracks</b> — while playing, a track comes in at the start of the next
+        phrase; tap it again to cancel. Tap an empty slot under <b>mine</b> to
+        keep what you have; tap <b>save</b> first to overwrite a slot.
+      </p>
     </div>
 
     <div class="scrim" id="mscrim">
@@ -1127,6 +1151,9 @@
             >36</b
           >
         </div>
+        <div class="rule"></div>
+        <div class="chiprow wrap" id="trackrow"><span>tracks</span></div>
+        <div class="chiprow" id="minerow"><span>mine</span></div>
         <div class="sheetbar">
           <button class="ctl" id="blank">Blank project</button>
           <button class="ctl" id="mclose">Done</button>
@@ -1218,21 +1245,203 @@
         el.style.setProperty("--layer-soft", c.soft);
         el.style.setProperty("--layer-hot", c.hot);
       }
-      const seed = {
-        kick: [0, 4, 8, 12],
-        clap: [4, 12],
-        hat: [2, 6, 10, 14],
-        open: [14],
-        perc: [7, 15],
-        bass: [2, 3, 6, 10, 11, 14],
-        stab: [4, 12],
-        blip: [9, 13],
-      };
+
+      /* ---------- factory tracks ----------
+         compact form: pat = steps that hit, line = { step: row } with row 0 at
+         the top of the pad (C5) down to row 11 (A2), P = only what differs from
+         a fresh layer, slots = chord indices (Am C Dm Em F G = 0..5).
+         The first track is also the startup state. */
+      const TRACKS = [
+        {
+          name: "909",
+          bpm: 130,
+          swing: 22,
+          div: 0.75,
+          fb: 36,
+          slots: [0, 4, 1, 5],
+          pat: {
+            kick: [0, 4, 8, 12],
+            clap: [4, 12],
+            hat: [2, 6, 10, 14],
+            open: [14],
+            perc: [7, 15],
+            bass: [2, 3, 6, 10, 11, 14],
+            stab: [4, 12],
+            blip: [9, 13],
+          },
+          line: { 0: 7, 1: 7, 4: 5, 5: 5, 8: 6, 10: 8, 12: 4, 13: 4, 14: 4 },
+        },
+        {
+          name: "drive",
+          bpm: 134,
+          swing: 0,
+          div: 0.75,
+          fb: 32,
+          slots: [0, 0, 4, 5],
+          pat: {
+            kick: [0, 4, 8, 12],
+            clap: [4, 12],
+            hat: [1, 3, 5, 7, 9, 11, 13, 15],
+            open: [2, 6, 10, 14],
+            perc: [3, 11],
+            bass: [2, 6, 10, 14],
+          },
+          line: {
+            0: 6,
+            1: 6,
+            3: 8,
+            6: 6,
+            8: 5,
+            10: 6,
+            14: 8,
+            16: 6,
+            17: 6,
+            19: 8,
+            22: 4,
+            24: 5,
+            26: 6,
+            30: 8,
+          },
+          P: {
+            kick: { tone: 0.9 },
+            hat: { width: 0.5, len: 0.8 },
+            open: { send: 0.2, width: 0.3 },
+            bass: { tone: 1.4, shape: "sine", bars: 4 },
+            line: { send: 0.3, width: 0.4 },
+          },
+        },
+        {
+          name: "dub",
+          bpm: 122,
+          swing: 22,
+          div: 0.75,
+          fb: 58,
+          slots: [0, 0, 2, 2],
+          pat: {
+            kick: [0, 4, 8, 12],
+            hat: [2, 6, 10, 14],
+            perc: [7],
+            bass: [3, 11],
+            stab: [3, 10],
+          },
+          line: { 6: 3, 7: 3, 22: 4, 23: 4, 28: 6 },
+          P: {
+            hat: { tone: 0.8, width: 0.4 },
+            perc: { send: 0.5, width: 0.6 },
+            bass: { len: 1.6, tone: 0.8 },
+            stab: {
+              len: 1.8,
+              tone: 0.8,
+              send: 0.75,
+              width: 0.6,
+              shape: "sine",
+              bars: 8,
+            },
+            line: { len: 1.6, tone: 0.8, send: 0.6, width: 0.5 },
+          },
+        },
+        {
+          name: "acid",
+          bpm: 128,
+          swing: 22,
+          div: 0.5,
+          fb: 30,
+          slots: [0, 0, 4, 0],
+          pat: {
+            kick: [0, 4, 8, 12],
+            clap: [4, 12],
+            hat: [2, 6, 10, 14],
+            bass: [0, 2, 3, 5, 6, 8, 10, 11, 13, 14],
+            blip: [5, 15],
+          },
+          line: { 20: 1, 21: 1, 24: 2, 28: 3 },
+          P: {
+            bass: { len: 1.3, tone: 2.2, shape: "sine", bars: 2 },
+            blip: { send: 0.4 },
+            line: { send: 0.35 },
+          },
+        },
+        {
+          name: "electro",
+          bpm: 128,
+          swing: 0,
+          div: 0.25,
+          fb: 40,
+          slots: [0, 3, 4, 5],
+          pat: {
+            kick: [0, 6, 10],
+            clap: [4, 12],
+            hat: [0, 2, 4, 6, 8, 10, 12, 14],
+            perc: [3, 7, 11, 14, 15],
+            bass: [0, 3, 6, 10, 13],
+            blip: [2, 9],
+          },
+          line: {
+            0: 5,
+            2: 3,
+            4: 1,
+            6: 3,
+            8: 6,
+            10: 4,
+            12: 2,
+            14: 4,
+            16: 5,
+            18: 3,
+            20: 1,
+            22: 0,
+            24: 1,
+            26: 3,
+            28: 5,
+            30: 6,
+          },
+          P: {
+            kick: { len: 1.3, tone: 0.85 },
+            perc: { tone: 1.3, width: 0.5 },
+            blip: { tone: 1.6, send: 0.3 },
+            line: { len: 0.8, send: 0.2, width: 0.3 },
+          },
+        },
+        {
+          name: "hypno",
+          bpm: 136,
+          swing: 0,
+          div: 0.75,
+          fb: 64,
+          slots: [0, 0, 0, 0],
+          pat: {
+            kick: [0, 4, 8, 12],
+            hat: [2, 6, 10, 14],
+            open: [14],
+            perc: [3, 6, 11],
+            bass: [2, 3, 6, 7, 10, 11, 14, 15],
+            blip: [3, 11],
+          },
+          line: {
+            0: 3,
+            3: 4,
+            6: 3,
+            10: 5,
+            13: 3,
+            16: 3,
+            19: 4,
+            22: 3,
+            26: 6,
+            29: 5,
+          },
+          P: {
+            perc: { tone: 1.4, send: 0.4, shape: "sh", bars: 2 },
+            bass: { tone: 0.7 },
+            blip: { send: 0.6, width: 0.7, shape: "up", bars: 8 },
+            line: { send: 0.5, shape: "sine", bars: 8 },
+          },
+        },
+      ];
+
       const pat = {};
       LAYERS.forEach(
         (l) =>
           (pat[l.id] = Array.from({ length: STEPS }, (_, i) =>
-            seed[l.id].includes(i),
+            (TRACKS[0].pat[l.id] || []).includes(i),
           )),
       );
       const muted = {};
@@ -1248,18 +1457,16 @@
         blip: { len: [0.35, 3.4], tone: [0.45, 2.6] },
         line: { len: [0.35, 3.2], tone: [0.45, 2.6] },
       };
+      const freshP = () => ({
+        len: 1,
+        tone: 1,
+        width: 0,
+        send: 0,
+        shape: "off",
+        bars: 4,
+      });
       const P = {};
-      Object.keys(RANGE).forEach(
-        (id) =>
-          (P[id] = {
-            len: 1,
-            tone: 1,
-            width: 0,
-            send: 0,
-            shape: "off",
-            bars: 4,
-          }),
-      );
+      Object.keys(RANGE).forEach((id) => (P[id] = freshP()));
       const gears = {}; // shape (◎)
       const queues = {}; // phrase-mute (»)
       const SHAPES = [
@@ -1274,6 +1481,13 @@
         Math.abs(p.tone - 1) > 0.02 ||
         p.width > 0.02 ||
         p.send > 0.02;
+      function markGear(id) {
+        const g = gears[id],
+          p = P[id];
+        if (!g) return;
+        g.classList.toggle("tweaked", isTweaked(p) && p.shape === "off");
+        g.classList.toggle("moving", p.shape !== "off");
+      }
 
       // fixed table so sample & hold loops the same way every cycle instead of drifting
       const RTAB = Array.from({ length: 128 }, () => Math.random());
@@ -1284,19 +1498,8 @@
       ];
       const ROWS = SCALE.length;
       // row 0 is the top of the pad, so higher row number = lower pitch
-      const lineSeed = {
-        0: 7,
-        1: 7,
-        4: 5,
-        5: 5,
-        8: 6,
-        10: 8,
-        12: 4,
-        13: 4,
-        14: 4,
-      };
       const line = Array.from({ length: PAD }, (_, i) =>
-        lineSeed[i] === undefined ? null : lineSeed[i],
+        TRACKS[0].line[i] === undefined ? null : TRACKS[0].line[i],
       );
 
       // every chord here is diatonic to A minor, so A minor pentatonic stays
@@ -1310,11 +1513,11 @@
         { name: "G", ratio: 0.8909, chord: [196, 246.94, 293.66] },
       ];
       const CHORD_BARS = 4;
-      const slots = [0, 4, 1, 5]; // Am F C G
+      const slots = TRACKS[0].slots.slice(); // Am F C G
       let CUR = CHORDS[0],
         swing = 22; // medium by default
       let delayDiv = 0.75; // dotted eighth
-      const PHRASE = 4; // bars per phrase, for queued mutes
+      const PHRASE = 4; // bars per phrase, for queued mutes and track changes
       const HUMANIZE = 1; // a few ms of timing jitter, always on
 
       /* ---------- sweep ---------- */
@@ -1448,7 +1651,7 @@
         });
         queues[id] = queue;
         gears[id] = gear;
-        el.append(span, queue, gear, document.createElement("i"));
+        el.append(span, queue, gear);
         chips[id] = el;
         el.addEventListener("click", (e) => {
           if (e.target.closest("button")) return;
@@ -1598,6 +1801,7 @@
         }
       }
       function drawPad() {
+        if (!W || !H) return; // drawImage throws on a zero-size canvas
         ctx.clearRect(0, 0, W, H);
         ctx.drawImage(cache, 0, 0, W, H);
         if (playStep < 0) return;
@@ -1687,12 +1891,15 @@
         // per-layer shaping is part of the project, not a global preference —
         // a fresh hat should not inherit the last one's delay
         Object.keys(P).forEach((id) => {
-          P[id] = { len: 1, tone: 1, width: 0, send: 0, shape: "off", bars: 4 };
+          P[id] = freshP();
           if (BUS[id]) applyBus(id);
-          gears[id].classList.remove("tweaked", "moving");
+          markGear(id);
           setMute(id, false);
         });
         [0, 4, 1, 5].forEach((v, i) => (slots[i] = v));
+        loadedChip = null;
+        queuedLoad = null;
+        paintTracks();
         clearTimeout(saveTimer);
         saveTimer = null;
         try {
@@ -1784,23 +1991,25 @@
       /* ---------- persistence ---------- */
       const KEY = "grid909";
       let saveTimer = null;
+      // everything that makes up a track; volume stays out on purpose, it
+      // belongs to the room, not the song
+      const snapshot = () => ({
+        pat,
+        line,
+        P,
+        slots,
+        bpm,
+        swing,
+        delayDiv,
+        fb: +fbEl.value,
+      });
       function saveNow() {
         clearTimeout(saveTimer);
         saveTimer = null;
         try {
           localStorage.setItem(
             KEY,
-            JSON.stringify({
-              pat,
-              line,
-              P,
-              slots,
-              bpm,
-              swing,
-              delayDiv,
-              vol: +volEl.value,
-              fb: +fbEl.value,
-            }),
+            JSON.stringify({ ...snapshot(), vol: +volEl.value }),
           );
         } catch (err) {}
       }
@@ -1811,18 +2020,11 @@
         saveTimer = setTimeout(saveNow, 1200);
       }
       addEventListener("pagehide", saveNow);
+      // pagehide doesn't reliably fire when a phone backgrounds the tab
       addEventListener("visibilitychange", () => {
         if (document.hidden) saveNow();
-        // background tabs get their timers clamped to about 1s, so the
-        // scheduler has to look further ahead or the audio gaps
-        LOOK = document.hidden ? 2 : 0.12;
       });
-      function loadState() {
-        let d = null;
-        try {
-          d = JSON.parse(localStorage.getItem(KEY) || "null");
-        } catch (err) {}
-        if (!d) return;
+      function applyState(d) {
         LAYERS.forEach((l) => {
           if (d.pat && d.pat[l.id]) pat[l.id] = d.pat[l.id].slice();
           cells[l.id].forEach((c, i) =>
@@ -1833,23 +2035,154 @@
           for (let i = 0; i < PAD; i++)
             line[i] = d.line[i] === undefined ? null : d.line[i];
         if (d.P)
-          Object.keys(P).forEach(
-            (id) => d.P[id] && Object.assign(P[id], d.P[id]),
-          );
+          Object.keys(P).forEach((id) => {
+            P[id] = Object.assign(freshP(), d.P[id]);
+            applyBus(id);
+            markGear(id);
+          });
         if (d.slots) d.slots.forEach((v, i) => (slots[i] = v));
         bpm = d.bpm || bpm;
         if (d.swing !== undefined) swing = d.swing;
         delayDiv = d.delayDiv || delayDiv;
         bpmEl.value = bpm;
         bpmv.textContent = bpm;
-        volEl.value = d.vol === undefined ? 80 : d.vol;
-        volEl.oninput();
-        fbEl.value = d.fb === undefined ? 36 : d.fb;
-        fbEl.oninput();
+        if (d.fb !== undefined) {
+          fbEl.value = d.fb;
+          fbEl.oninput();
+        }
+        if (ac) syncDelay();
         paintSwing();
         paintDiv();
+        if (editing && scrim.classList.contains("open")) drawAll();
         buildCache();
+        drawPad();
+        drawPhase();
+        queueSave();
       }
+      function loadState() {
+        let d = null;
+        try {
+          d = JSON.parse(localStorage.getItem(KEY) || "null");
+        } catch (err) {}
+        if (!d) return;
+        applyState(d);
+        volEl.value = d.vol === undefined ? 80 : d.vol;
+        volEl.oninput();
+      }
+
+      /* ---------- tracks ---------- */
+      // compact factory entry -> the same full shape a snapshot has
+      function expand(t) {
+        const d = {
+          bpm: t.bpm,
+          swing: t.swing,
+          delayDiv: t.div,
+          fb: t.fb,
+          slots: t.slots.slice(),
+          pat: {},
+          line: Array(PAD).fill(null),
+          P: {},
+        };
+        LAYERS.forEach(
+          (l) =>
+            (d.pat[l.id] = Array.from({ length: STEPS }, (_, i) =>
+              (t.pat[l.id] || []).includes(i),
+            )),
+        );
+        Object.entries(t.line || {}).forEach(([s, r]) => (d.line[s] = r));
+        Object.keys(P).forEach(
+          (id) => (d.P[id] = Object.assign(freshP(), (t.P || {})[id])),
+        );
+        return d;
+      }
+
+      let queuedLoad = null, // { state, chip } waiting for the next phrase
+        loadedChip = null,
+        saveArm = false;
+      const trackChips = [];
+
+      function requestLoad(state, chip) {
+        if (!timer) return commitLoad(state, chip);
+        // second tap on the waiting track cancels it
+        queuedLoad =
+          queuedLoad && queuedLoad.chip === chip ? null : { state, chip };
+        paintTracks();
+      }
+      // a new track comes in clean: mutes and armed mutes from the last one
+      // don't carry over
+      function commitLoad(state, chip) {
+        queuedLoad = null;
+        loadedChip = chip;
+        applyState(state);
+        Object.keys(chips).forEach((id) => setMute(id, false));
+        paintTracks();
+      }
+
+      const trackRow = document.getElementById("trackrow");
+      TRACKS.forEach((t) => {
+        const b = document.createElement("button");
+        b.className = "chip";
+        b.textContent = t.name;
+        b.onclick = () => requestLoad(expand(t), b);
+        trackRow.appendChild(b);
+        trackChips.push(b);
+      });
+
+      const MKEY = "grid909.mine",
+        MINE = 4;
+      const mine = Array(MINE).fill(null);
+      try {
+        const u = JSON.parse(localStorage.getItem(MKEY) || "null");
+        if (Array.isArray(u))
+          u.slice(0, MINE).forEach((v, i) => (mine[i] = v || null));
+      } catch (err) {}
+
+      const mineRow = document.getElementById("minerow");
+      const mineBtns = mine.map((_, i) => {
+        const b = document.createElement("button");
+        b.className = "chip";
+        b.textContent = i + 1;
+        b.setAttribute("aria-label", "my slot " + (i + 1));
+        b.onclick = () => {
+          if (saveArm || !mine[i]) {
+            // deep copy, so later edits don't leak into the stored slot
+            mine[i] = JSON.parse(JSON.stringify(snapshot()));
+            try {
+              localStorage.setItem(MKEY, JSON.stringify(mine));
+            } catch (err) {}
+            saveArm = false;
+            loadedChip = b;
+            if (queuedLoad && queuedLoad.chip === b) queuedLoad = null;
+            paintTracks();
+            return;
+          }
+          requestLoad(mine[i], b);
+        };
+        mineRow.appendChild(b);
+        trackChips.push(b);
+        return b;
+      });
+      const saveBtn = document.createElement("button");
+      saveBtn.className = "chip";
+      saveBtn.textContent = "save";
+      saveBtn.onclick = () => {
+        saveArm = !saveArm;
+        paintTracks();
+      };
+      mineRow.appendChild(saveBtn);
+
+      function paintTracks() {
+        trackChips.forEach((b) => {
+          b.classList.toggle("on", b === loadedChip);
+          b.classList.toggle("queued", !!queuedLoad && queuedLoad.chip === b);
+        });
+        mineBtns.forEach((b, i) => {
+          b.classList.toggle("empty", !mine[i]);
+          b.classList.toggle("armed", saveArm);
+        });
+        saveBtn.classList.toggle("on", saveArm);
+      }
+      paintTracks();
 
       /* ---------- phase strip ---------- */
       const ph = document.getElementById("phase");
@@ -2180,14 +2513,25 @@
         },
       };
 
-      let LOOK = 0.12; // seconds of scheduling lookahead
+      const LOOK = 0.12; // seconds of scheduling lookahead
       function schedule() {
-        const spb = 60 / bpm / 4,
-          myGen = gen;
+        const myGen = gen;
         while (nextTime < ac.currentTime + LOOK) {
           const s = step,
-            a = absStep,
             ds = s % STEPS;
+          let a = absStep;
+          if (ds === 0 && Math.floor(a / STEPS) % PHRASE === 0) {
+            if (queuedLoad) {
+              commitLoad(queuedLoad.state, queuedLoad.chip);
+              a = 0; // the new track starts on its first chord and sweep phase
+            }
+            for (const id in pending) {
+              muted[id] = pending[id];
+              delete pending[id];
+            }
+          }
+          // read per step, so a track change lands on its own tempo
+          const spb = 60 / bpm / 4;
           // odd 16ths land late; the grid itself never moves
           const t =
             nextTime +
@@ -2196,15 +2540,6 @@
           SIDE = ds % 2;
           CUR =
             CHORDS[slots[Math.floor(a / (CHORD_BARS * STEPS)) % slots.length]];
-          if (ds === 0) {
-            const atPhraseStart = Math.floor(a / STEPS) % PHRASE === 0;
-            if (atPhraseStart) {
-              for (const id in pending) {
-                muted[id] = pending[id];
-                delete pending[id];
-              }
-            }
-          }
           LAYERS.forEach((l) => {
             if (pat[l.id][ds] && !muted[l.id])
               VOICE[l.id](t, P[l.id].len, effTone(l.id, a));
@@ -2218,13 +2553,12 @@
               line[(s + 1) % PAD] === line[s],
             );
           }
-          if (!document.hidden)
-            setTimeout(
-              () => {
-                if (myGen === gen) light(s, a);
-              },
-              Math.max(0, (t - ac.currentTime) * 1000),
-            );
+          setTimeout(
+            () => {
+              if (myGen === gen) light(s, a);
+            },
+            Math.max(0, (t - ac.currentTime) * 1000),
+          );
           step = (s + 1) % PAD;
           absStep = a + 1;
           nextTime += spb;
@@ -2263,6 +2597,8 @@
         drawPad();
         for (const id in pending) delete pending[id];
         syncChips();
+        queuedLoad = null;
+        paintTracks();
         drawPhase();
       }
       run.onclick = async () => {
@@ -2507,13 +2843,7 @@
         [2, 4, 8].forEach((n) =>
           cycleBtns[n].classList.toggle("on", p.bars === n),
         );
-        if (gears[editing]) {
-          gears[editing].classList.toggle(
-            "tweaked",
-            isTweaked(p) && p.shape === "off",
-          );
-          gears[editing].classList.toggle("moving", p.shape !== "off");
-        }
+        markGear(editing);
         queueSave();
       }
       function audition() {
@@ -2546,14 +2876,7 @@
           audition();
         });
       document.getElementById("reset").onclick = () => {
-        P[editing] = {
-          len: 1,
-          tone: 1,
-          width: 0,
-          send: 0,
-          shape: "off",
-          bars: 4,
-        };
+        P[editing] = freshP();
         drawAll();
         if (!timer) audition();
       };
